@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Dumbbell, UtensilsCrossed, Droplets, TrendingUp } from 'lucide-react';
+import { Home, Dumbbell, UtensilsCrossed, Droplets, TrendingUp, CalendarDays } from 'lucide-react';
 
 const tabs = [
   { path: '/', icon: Home, label: 'Today' },
@@ -8,6 +8,7 @@ const tabs = [
   { path: '/meals', icon: UtensilsCrossed, label: 'Meals' },
   { path: '/water', icon: Droplets, label: 'Water' },
   { path: '/progress', icon: TrendingUp, label: 'Progress' },
+  { path: '/history', icon: CalendarDays, label: 'History' },
 ];
 
 export default function BottomNav() {

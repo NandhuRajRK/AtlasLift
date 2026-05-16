@@ -12,6 +12,7 @@ import Workout from '@/pages/Workout';
 import Meals from '@/pages/Meals';
 import Water from '@/pages/Water';
 import Progress from '@/pages/Progress';
+import History from '@/pages/History';
 import Profile from '@/pages/Profile';
 import Programs from '@/pages/Programs';
 import Onboarding from '@/pages/Onboarding';
@@ -49,6 +50,7 @@ const AuthenticatedApp = () => {
           <Route path="/meals" element={<Meals />} />
           <Route path="/water" element={<Water />} />
           <Route path="/progress" element={<Progress />} />
+          <Route path="/history" element={<History />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/programs" element={<Programs />} />
         </Route>
