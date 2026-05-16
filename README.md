@@ -9,34 +9,92 @@ AtlasLift is a local-first fitness tracking app built with React + Vite and pack
 - `ios/`: Capacitor iOS project
 - `public/`: static assets
 
-## Current Feature Set
+## Feature Matrix
 
-- Onboarding + profile setup
-- Workout logging with:
-  - active session logger
-  - rest timer
-  - superset group tagging
-  - undo for destructive delete actions
-  - progression/deload guidance
-- Program builder:
-  - program days/exercises
-  - inline sets/reps edits
-  - exercise grouping tags
-- Nutrition:
-  - meal logging/editing
-  - saved meals
-  - repeat yesterday meals
-  - undo delete
-- Hydration tracking
-- Progress:
-  - bodyweight + measurements
-  - advanced measurements toggle (chest/arm/thigh)
-  - photo timeline
-  - goal-aware trend/adherence cards
-- History:
-  - date-based logs for workouts/meals/hydration/measurements
-  - edit/delete support on logged data
-  - weekly vs monthly summaries
+### Onboarding
+
+- Multi-step onboarding flow
+- Inline validation for required fields and numeric ranges
+- Saves onboarding completion to local profile
+- Onboarding guard redirects incomplete users
+
+### Today
+
+- Daily overview cards (nutrition, hydration, workout, weight)
+- Goal/target-aware daily summary
+- Quick actions linking to core logging screens
+
+### Workout
+
+- Start quick workout sessions
+- Start workouts from active planned program days
+- In-session exercise logging with set-by-set tracking
+- Inline set edits (weight/reps/RPE/completion)
+- Rest timer with presets and auto-start on set completion
+- Superset/giant-set grouping label display
+- Undo delete for sets and completed sessions
+- Workout completion summary (duration, set count, volume, exercises)
+- Weekly load trend guidance:
+  - go-slower warning on sharp load spikes
+  - deload suggestion on low change + high recent frequency
+
+### Programs
+
+- Create/edit workout programs
+- Add/remove/reorder program days
+- Add/remove/reorder exercises per day
+- Inline target sets/reps editing
+- Exercise group tag (e.g. A/B/C) support
+- Persist full edit state including deletions/updates
+- Activate one program for workout execution
+
+### Meals
+
+- Add/edit/delete meal logs
+- Undo delete for meal entries
+- Save meals as reusable templates
+- Quick add from saved meals
+- Repeat yesterday meals
+- Macro totals vs profile targets
+- Empty/error loading states with retry
+
+### Hydration
+
+- Add hydration entries with quick amounts
+- Daily hydration progress ring vs target
+- Entry list with timestamps
+- Delete hydration entries
+
+### Progress
+
+- Log bodyweight and waist
+- Optional advanced measurement logging (chest/arm/thigh)
+- Advanced measurements toggle in settings
+- Circumference trend cards (4-week delta)
+- Bodyweight trend chart
+- Goal-specific metric cards
+- PR highlights (derived from workout sets)
+- Adherence/trend cards (nutrition, hydration, workout/recovery proxies)
+- Goal-aware nutrition recommendation adjustments
+- Progress photo timeline (local storage)
+  - appends new photos (no overwrite)
+
+### History
+
+- Date-based history view with picker + quick date chips
+- Day detail for workouts, meals, hydration, body metrics
+- Inline edit/delete on meal/hydration/body-metric logs
+- Workout deletion with linked set cleanup
+- Weekly vs monthly summary + normalized comparison
+- Excludes photo-only entries from body-metric measurement list
+
+### Profile & Settings
+
+- Edit profile and targets
+- Validation on profile updates
+- Goal and experience configuration
+- Toggle advanced body measurements
+- Export local data as JSON
 
 ## Data Model
 
