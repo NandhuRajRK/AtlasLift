@@ -1,0 +1,38 @@
+{
+  "name": "ProgramDay",
+  "type": "object",
+  "properties": {
+    "programId": {
+      "type": "string",
+      "description": "Reference to WorkoutProgram"
+    },
+    "dayName": {
+      "type": "string"
+    },
+    "dayOrder": {
+      "type": "number"
+    },
+    "focus": {
+      "type": "string",
+      "enum": [
+        "push",
+        "pull",
+        "legs",
+        "upper",
+        "lower",
+        "full_body",
+        "arms",
+        "shoulders",
+        "rest"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "programId",
+    "dayName",
+    "dayOrder"
+  ]
+}

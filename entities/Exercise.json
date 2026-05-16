@@ -1,0 +1,84 @@
+{
+  "name": "Exercise",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "primaryMuscle": {
+      "type": "string",
+      "enum": [
+        "chest",
+        "back",
+        "shoulders",
+        "biceps",
+        "triceps",
+        "quads",
+        "hamstrings",
+        "glutes",
+        "calves",
+        "core",
+        "forearms",
+        "traps",
+        "full_body"
+      ]
+    },
+    "secondaryMuscles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "equipment": {
+      "type": "string",
+      "enum": [
+        "barbell",
+        "dumbbell",
+        "cable",
+        "machine",
+        "bodyweight",
+        "kettlebell",
+        "band",
+        "other"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "compound",
+        "isolation",
+        "cardio",
+        "mobility"
+      ]
+    },
+    "movementPattern": {
+      "type": "string",
+      "enum": [
+        "squat",
+        "hinge",
+        "push",
+        "pull",
+        "carry",
+        "core",
+        "other"
+      ]
+    },
+    "instructions": {
+      "type": "string"
+    },
+    "commonMistakes": {
+      "type": "string"
+    },
+    "substitutions": {
+      "type": "string"
+    },
+    "isDefault": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name",
+    "primaryMuscle"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "HydrationEntry",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "amountMl": {
+      "type": "number"
+    },
+    "drinkType": {
+      "type": "string",
+      "enum": [
+        "water",
+        "coffee",
+        "tea",
+        "electrolyte",
+        "other"
+      ],
+      "default": "water"
+    }
+  },
+  "required": [
+    "date",
+    "amountMl"
+  ]
+}

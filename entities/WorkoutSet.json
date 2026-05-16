@@ -1,0 +1,46 @@
+{
+  "name": "WorkoutSet",
+  "type": "object",
+  "properties": {
+    "workoutSessionId": {
+      "type": "string"
+    },
+    "exerciseId": {
+      "type": "string"
+    },
+    "exerciseName": {
+      "type": "string"
+    },
+    "setNumber": {
+      "type": "number"
+    },
+    "weightKg": {
+      "type": "number"
+    },
+    "reps": {
+      "type": "number"
+    },
+    "rpe": {
+      "type": "number"
+    },
+    "rir": {
+      "type": "number"
+    },
+    "isWarmup": {
+      "type": "boolean",
+      "default": false
+    },
+    "isCompleted": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "workoutSessionId",
+    "exerciseName",
+    "setNumber"
+  ]
+}

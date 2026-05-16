@@ -1,0 +1,48 @@
+{
+  "name": "WorkoutSession",
+  "type": "object",
+  "properties": {
+    "programId": {
+      "type": "string"
+    },
+    "programDayId": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "startTime": {
+      "type": "string"
+    },
+    "endTime": {
+      "type": "string"
+    },
+    "durationMinutes": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "in_progress",
+        "completed",
+        "skipped"
+      ],
+      "default": "planned"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "perceivedDifficulty": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "name",
+    "date"
+  ]
+}

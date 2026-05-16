@@ -1,0 +1,40 @@
+{
+  "name": "ProgramExercise",
+  "type": "object",
+  "properties": {
+    "programDayId": {
+      "type": "string",
+      "description": "Reference to ProgramDay"
+    },
+    "exerciseId": {
+      "type": "string",
+      "description": "Reference to Exercise"
+    },
+    "exerciseName": {
+      "type": "string"
+    },
+    "order": {
+      "type": "number"
+    },
+    "targetSets": {
+      "type": "number"
+    },
+    "targetReps": {
+      "type": "number"
+    },
+    "targetRPE": {
+      "type": "number"
+    },
+    "restSeconds": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "programDayId",
+    "exerciseName",
+    "order"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "name": "WorkoutProgram",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "goalType": {
+      "type": "string",
+      "enum": [
+        "hypertrophy",
+        "strength",
+        "recomp",
+        "general_fitness",
+        "cut",
+        "lean_bulk"
+      ]
+    },
+    "experienceLevel": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ]
+    },
+    "daysPerWeek": {
+      "type": "number"
+    },
+    "description": {
+      "type": "string"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

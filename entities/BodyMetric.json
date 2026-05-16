@@ -1,0 +1,37 @@
+{
+  "name": "BodyMetric",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "bodyweightKg": {
+      "type": "number"
+    },
+    "waistCm": {
+      "type": "number"
+    },
+    "chestCm": {
+      "type": "number"
+    },
+    "armCm": {
+      "type": "number"
+    },
+    "thighCm": {
+      "type": "number"
+    },
+    "shoulderCm": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "progressPhotoUrl": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "date"
+  ]
+}

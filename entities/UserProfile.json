@@ -1,0 +1,96 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "User display name"
+    },
+    "age": {
+      "type": "number",
+      "description": "Age in years"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "male",
+        "female",
+        "other",
+        "prefer_not_to_say"
+      ],
+      "description": "Gender"
+    },
+    "heightCm": {
+      "type": "number",
+      "description": "Height in cm"
+    },
+    "currentWeightKg": {
+      "type": "number",
+      "description": "Current weight in kg"
+    },
+    "targetWeightKg": {
+      "type": "number",
+      "description": "Target weight in kg"
+    },
+    "goalType": {
+      "type": "string",
+      "enum": [
+        "cut",
+        "lean_bulk",
+        "recomp",
+        "maintain",
+        "strength",
+        "general_fitness"
+      ],
+      "description": "Primary fitness goal"
+    },
+    "experienceLevel": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "description": "Training experience"
+    },
+    "trainingDaysPerWeek": {
+      "type": "number",
+      "description": "Number of training days per week"
+    },
+    "calorieTarget": {
+      "type": "number",
+      "description": "Daily calorie target"
+    },
+    "proteinTarget": {
+      "type": "number",
+      "description": "Daily protein target in grams"
+    },
+    "carbTarget": {
+      "type": "number",
+      "description": "Daily carb target in grams"
+    },
+    "fatTarget": {
+      "type": "number",
+      "description": "Daily fat target in grams"
+    },
+    "waterTargetMl": {
+      "type": "number",
+      "description": "Daily water target in ml"
+    },
+    "preferredUnits": {
+      "type": "string",
+      "enum": [
+        "metric",
+        "imperial"
+      ],
+      "default": "metric"
+    },
+    "onboardingComplete": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
