@@ -6,8 +6,11 @@ import MacroBar from '@/components/ui/MacroBar';
 import GradientButton from '@/components/ui/GradientButton';
 import MealForm from '@/components/meals/MealForm';
 import SavedMealPicker from '@/components/meals/SavedMealPicker';
-import { Plus, Bookmark, Trash2, UtensilsCrossed, Pencil } from 'lucide-react';
+import { Plus, Bookmark, Trash2, UtensilsCrossed, Pencil, RotateCcw } from 'lucide-react';
 import { selectPrimaryProfile } from '@/lib/profileUtils';
+import { toast } from '@/components/ui/use-toast';
+import { ToastAction } from '@/components/ui/toast';
+import { format, subDays } from 'date-fns';
 
 const MEAL_TYPE_LABELS = {
   breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack',
@@ -20,6 +23,8 @@ export default function Meals() {
   const [showForm, setShowForm] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
   const [editingMeal, setEditingMeal] = useState(null);
+  const [pendingDeleteIds, setPendingDeleteIds] = useState([]);
+  const [deleteTimers, setDeleteTimers] = useState({});
 
   const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => appClient.entities.UserProfile.list('-created_date', 50), initialData: [] });
   const profile = selectPrimaryProfile(profiles) || {};
@@ -29,22 +34,83 @@ export default function Meals() {
     queryFn: () => appClient.entities.MealLog.filter({ date: today }),
     initialData: [],
   });
+  const { data: allMeals, refetch: refetchAllMeals, isLoading: mealsLoading, isError: mealsError } = useQuery({
+    queryKey: ['allMeals'],
+    queryFn: () => appClient.entities.MealLog.list('-created_date', 1000),
+    initialData: [],
+  });
 
   const deleteMeal = useMutation({
     mutationFn: (id) => appClient.entities.MealLog.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meals', today] }),
   });
 
-  const totalCals = meals.reduce((s, m) => s + (m.calories || 0), 0);
-  const totalProtein = meals.reduce((s, m) => s + (m.protein || 0), 0);
-  const totalCarbs = meals.reduce((s, m) => s + (m.carbs || 0), 0);
-  const totalFat = meals.reduce((s, m) => s + (m.fat || 0), 0);
+  const visibleMeals = meals.filter((m) => !pendingDeleteIds.includes(m.id));
+
+  const totalCals = visibleMeals.reduce((s, m) => s + (m.calories || 0), 0);
+  const totalProtein = visibleMeals.reduce((s, m) => s + (m.protein || 0), 0);
+  const totalCarbs = visibleMeals.reduce((s, m) => s + (m.carbs || 0), 0);
+  const totalFat = visibleMeals.reduce((s, m) => s + (m.fat || 0), 0);
   const calTarget = profile.calorieTarget || 2200;
   const proTarget = profile.proteinTarget || 160;
 
   const closeMealForm = () => { setShowForm(false); setEditingMeal(null); queryClient.invalidateQueries({ queryKey: ['meals', today] }); };
   if (showForm || editingMeal) return <MealForm onClose={closeMealForm} editMeal={editingMeal} />;
   if (showSaved) return <SavedMealPicker onClose={() => { setShowSaved(false); queryClient.invalidateQueries({ queryKey: ['meals', today] }); }} />;
+
+  const queueDeleteMeal = (meal) => {
+    if (pendingDeleteIds.includes(meal.id)) return;
+    setPendingDeleteIds((prev) => [...prev, meal.id]);
+    const timer = setTimeout(async () => {
+      await deleteMeal.mutateAsync(meal.id);
+      setPendingDeleteIds((prev) => prev.filter((id) => id !== meal.id));
+      setDeleteTimers((prev) => {
+        const next = { ...prev };
+        delete next[meal.id];
+        return next;
+      });
+    }, 5000);
+    setDeleteTimers((prev) => ({ ...prev, [meal.id]: timer }));
+    toast({
+      title: 'Meal removed',
+      description: `${meal.name} will be deleted.`,
+      action: (
+        <ToastAction onClick={() => {
+          clearTimeout(timer);
+          setPendingDeleteIds((prev) => prev.filter((id) => id !== meal.id));
+          setDeleteTimers((prev) => {
+            const next = { ...prev };
+            delete next[meal.id];
+            return next;
+          });
+        }}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
+  const repeatYesterdayMeals = async () => {
+    const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    const yesterdayMeals = allMeals.filter((m) => m.date === yesterday);
+    if (yesterdayMeals.length === 0) {
+      toast({ title: 'No meals to repeat', description: 'Yesterday had no logged meals.' });
+      return;
+    }
+    for (const meal of yesterdayMeals) {
+      await appClient.entities.MealLog.create({
+        date: today,
+        mealType: meal.mealType,
+        name: meal.name,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ['meals', today] });
+    toast({ title: 'Meals repeated', description: `Copied ${yesterdayMeals.length} meal(s) from yesterday.` });
+  };
 
   return (
     <div className="px-4 pt-6 pb-4 space-y-4">
@@ -67,6 +133,10 @@ export default function Meals() {
         <GradientButton onClick={() => setShowForm(true)} className="flex-1 h-12 flex items-center justify-center gap-2">
           <Plus className="w-4 h-4" /> Add Meal
         </GradientButton>
+        <button onClick={repeatYesterdayMeals}
+          className="h-12 px-3 rounded-xl bg-secondary text-foreground font-medium text-sm flex items-center gap-2">
+          <RotateCcw className="w-4 h-4" /> Repeat
+        </button>
         <button onClick={() => setShowSaved(true)}
           className="h-12 px-4 rounded-xl bg-secondary text-foreground font-medium text-sm flex items-center gap-2">
           <Bookmark className="w-4 h-4" /> Saved
@@ -74,10 +144,17 @@ export default function Meals() {
       </div>
 
       {/* Meal List */}
-      {meals.length > 0 ? (
+      {mealsError ? (
+        <div className="text-center py-8 space-y-2">
+          <p className="text-sm text-muted-foreground">Could not load meals.</p>
+          <button onClick={() => { queryClient.invalidateQueries({ queryKey: ['meals', today] }); refetchAllMeals(); }} className="text-xs text-primary font-medium">Retry</button>
+        </div>
+      ) : mealsLoading ? (
+        <div className="text-center py-8 text-sm text-muted-foreground">Loading meals...</div>
+      ) : visibleMeals.length > 0 ? (
         <div className="space-y-2">
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Today's Meals</div>
-          {meals.map(meal => (
+          {visibleMeals.map(meal => (
             <div key={meal.id} className="bg-card rounded-xl p-4 border border-border">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -94,7 +171,7 @@ export default function Meals() {
                   <button onClick={() => setEditingMeal(meal)} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
                     <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
-                  <button onClick={() => deleteMeal.mutate(meal.id)} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                  <button onClick={() => queueDeleteMeal(meal)} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
                     <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
                 </div>

@@ -2,17 +2,22 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appClient } from '@/api/localClient';
 import { getToday } from '@/lib/dateUtils';
-import { Dumbbell, Plus, Play, CheckCircle2, Clock, ChevronRight } from 'lucide-react';
+import { Dumbbell, Plus, Play, CheckCircle2, Clock, ChevronRight, Trash2 } from 'lucide-react';
 import GradientButton from '@/components/ui/GradientButton';
 import WorkoutLogger from '@/components/workout/WorkoutLogger';
 import WorkoutSummary from '@/components/workout/WorkoutSummary';
 import { Link } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
+import { ToastAction } from '@/components/ui/toast';
+import { subDays, parseISO } from 'date-fns';
 
 export default function Workout() {
   const today = getToday();
   const queryClient = useQueryClient();
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [showSummary, setShowSummary] = useState(null);
+  const [pendingDeleteSessionIds, setPendingDeleteSessionIds] = useState([]);
+  const [deleteTimers, setDeleteTimers] = useState({});
 
   const { data: sessions } = useQuery({
     queryKey: ['workoutSessions'],
@@ -29,6 +34,12 @@ export default function Workout() {
   const { data: programDays } = useQuery({
     queryKey: ['programDays'],
     queryFn: () => appClient.entities.ProgramDay.list(),
+    initialData: [],
+  });
+
+  const { data: allSets } = useQuery({
+    queryKey: ['allWorkoutSetsForGuidance'],
+    queryFn: () => appClient.entities.WorkoutSet.list('-created_date', 3000),
     initialData: [],
   });
 
@@ -53,9 +64,75 @@ export default function Workout() {
   });
 
   const inProgressSession = sessions.find(s => s.status === 'in_progress');
-  const todaySessions = sessions.filter(s => s.date === today);
-  const recentSessions = sessions.filter(s => s.date !== today && s.status === 'completed').slice(0, 5);
+  const todaySessions = sessions.filter(s => s.date === today && !pendingDeleteSessionIds.includes(s.id));
+  const recentSessions = sessions.filter(s => s.date !== today && s.status === 'completed' && !pendingDeleteSessionIds.includes(s.id)).slice(0, 5);
   const activeDays = activeProgram ? programDays.filter(d => d.programId === activeProgram.id).sort((a,b) => a.dayOrder - b.dayOrder) : [];
+  const sessionById = new Map(sessions.map((s) => [s.id, s]));
+
+  const getWeeklyLoad = (fromDate) =>
+    allSets.reduce((sum, st) => {
+      const session = sessionById.get(st.workoutSessionId);
+      if (!session?.date || session.status !== 'completed') return sum;
+      if (parseISO(session.date) < fromDate) return sum;
+      return sum + (Number(st.weightKg || 0) * Number(st.reps || 0));
+    }, 0);
+
+  const currentWeekStart = subDays(new Date(), 6);
+  const prevWeekStart = subDays(new Date(), 13);
+  const prevWeekEnd = subDays(new Date(), 7);
+  const currentWeekLoad = getWeeklyLoad(currentWeekStart);
+  const previousWeekLoad = allSets.reduce((sum, st) => {
+    const session = sessionById.get(st.workoutSessionId);
+    if (!session?.date || session.status !== 'completed') return sum;
+    const d = parseISO(session.date);
+    if (d < prevWeekStart || d > prevWeekEnd) return sum;
+    return sum + (Number(st.weightKg || 0) * Number(st.reps || 0));
+  }, 0);
+  const loadChangePct = previousWeekLoad > 0 ? ((currentWeekLoad - previousWeekLoad) / previousWeekLoad) * 100 : 0;
+  const weekCompleted = sessions.filter((s) => s.status === 'completed' && s.date && parseISO(s.date) >= currentWeekStart).length;
+  const goSlowerWarning = loadChangePct > 15 && weekCompleted >= 4;
+  const deloadSuggestion = loadChangePct < 5 && weekCompleted >= 4;
+
+  const deleteSession = useMutation({
+    mutationFn: async (sessionId) => {
+      const sessionSets = await appClient.entities.WorkoutSet.filter({ workoutSessionId: sessionId });
+      for (const st of sessionSets) await appClient.entities.WorkoutSet.delete(st.id);
+      await appClient.entities.WorkoutSession.delete(sessionId);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workoutSessions'] }),
+  });
+
+  const queueDeleteSession = (session) => {
+    if (pendingDeleteSessionIds.includes(session.id)) return;
+    setPendingDeleteSessionIds((prev) => [...prev, session.id]);
+    const timer = setTimeout(async () => {
+      await deleteSession.mutateAsync(session.id);
+      setPendingDeleteSessionIds((prev) => prev.filter((id) => id !== session.id));
+      setDeleteTimers((prev) => {
+        const next = { ...prev };
+        delete next[session.id];
+        return next;
+      });
+    }, 5000);
+    setDeleteTimers((prev) => ({ ...prev, [session.id]: timer }));
+    toast({
+      title: 'Workout removed',
+      description: `${session.name} will be deleted.`,
+      action: (
+        <ToastAction onClick={() => {
+          clearTimeout(timer);
+          setPendingDeleteSessionIds((prev) => prev.filter((id) => id !== session.id));
+          setDeleteTimers((prev) => {
+            const next = { ...prev };
+            delete next[session.id];
+            return next;
+          });
+        }}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
 
   if (activeSessionId || inProgressSession) {
     return <WorkoutLogger sessionId={activeSessionId || inProgressSession.id} onFinish={(session) => {
@@ -107,18 +184,38 @@ export default function Workout() {
         <span>{startWorkout.isPending ? 'Starting...' : 'Quick Workout'}</span>
       </GradientButton>
 
+      <div className="bg-card rounded-2xl p-4 border border-border space-y-2">
+        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Progression & Deload Guidance</div>
+        <div className="text-sm text-foreground">
+          {goSlowerWarning
+            ? 'Load is up sharply this week. Go slower on progression to manage fatigue and technique quality.'
+            : deloadSuggestion
+              ? 'Load change is low with high recent frequency. Consider a deload: reduce load/volume by 30-40% for 4-7 days.'
+              : 'Current loading trend looks stable. Continue current progression pace.'}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Week load: {Math.round(currentWeekLoad)} kg · Previous week: {Math.round(previousWeekLoad)} kg
+          {previousWeekLoad > 0 ? ` · ${loadChangePct >= 0 ? '+' : ''}${Math.round(loadChangePct)}%` : ''}
+        </div>
+      </div>
+
       {/* Today's sessions */}
       {todaySessions.filter(s => s.status === 'completed').length > 0 && (
         <div className="bg-card rounded-2xl p-4 border border-border">
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-3">Today</div>
           {todaySessions.filter(s => s.status === 'completed').map(s => (
-            <button key={s.id} onClick={() => setShowSummary(s)} className="w-full flex items-center justify-between py-2">
+            <div key={s.id} className="w-full flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-chart-4" />
-                <span className="text-sm text-foreground">{s.name}</span>
+                <button onClick={() => setShowSummary(s)} className="text-sm text-foreground">{s.name}</button>
               </div>
-              <span className="text-xs text-muted-foreground">{s.durationMinutes ? `${s.durationMinutes} min` : ''}</span>
-            </button>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{s.durationMinutes ? `${s.durationMinutes} min` : ''}</span>
+                <button onClick={() => queueDeleteSession(s)} className="w-7 h-7 rounded-md bg-secondary flex items-center justify-center">
+                  <Trash2 className="w-3 h-3 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -128,13 +225,18 @@ export default function Workout() {
         <div className="bg-card rounded-2xl p-4 border border-border">
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-3">Recent</div>
           {recentSessions.map(s => (
-            <button key={s.id} onClick={() => setShowSummary(s)} className="w-full flex items-center justify-between py-2">
+            <div key={s.id} className="w-full flex items-center justify-between py-2">
               <div>
-                <div className="text-sm text-foreground text-left">{s.name}</div>
+                <button onClick={() => setShowSummary(s)} className="text-sm text-foreground text-left">{s.name}</button>
                 <div className="text-xs text-muted-foreground">{s.date}</div>
               </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
+              <div className="flex items-center gap-2">
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                <button onClick={() => queueDeleteSession(s)} className="w-7 h-7 rounded-md bg-secondary flex items-center justify-center">
+                  <Trash2 className="w-3 h-3 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}

@@ -102,6 +102,7 @@ export default function ProgramEditor({ program, onClose }) {
         order: dayExercises.length + 1,
         targetSets: 3,
         targetReps: 10,
+        supersetTag: '',
       }],
     });
     setPickingForDay(null);
@@ -211,6 +212,7 @@ export default function ProgramEditor({ program, onClose }) {
             order: exIdx + 1,
             targetSets: Number(ex.targetSets) || 3,
             targetReps: Number(ex.targetReps) || 10,
+            supersetTag: ex.supersetTag || '',
           });
         }
       }
@@ -323,6 +325,15 @@ export default function ProgramEditor({ program, onClose }) {
                                         <div className="flex-1">
                                           <Label className="text-[10px] text-muted-foreground">Reps</Label>
                                           <Input type="number" min="1" max="100" value={ex.targetReps} onChange={(e) => updateExerciseField(day.id, i, 'targetReps', Number(e.target.value))} className="h-8 bg-card border-0 text-foreground text-xs mt-1" />
+                                        </div>
+                                        <div className="flex-1">
+                                          <Label className="text-[10px] text-muted-foreground">Group</Label>
+                                          <Input
+                                            value={ex.supersetTag || ''}
+                                            onChange={(e) => updateExerciseField(day.id, i, 'supersetTag', e.target.value.toUpperCase().slice(0, 3))}
+                                            placeholder="A"
+                                            className="h-8 bg-card border-0 text-foreground text-xs mt-1"
+                                          />
                                         </div>
                                         <div className="flex flex-col gap-1 pt-4">
                                           <button onClick={() => {
