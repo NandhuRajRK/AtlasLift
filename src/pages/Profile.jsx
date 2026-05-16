@@ -164,6 +164,24 @@ export default function Profile() {
             </SelectContent>
           </Select>
         </div>
+
+        <div className="bg-card rounded-xl border border-border p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Advanced Body Measurements</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Show chest, arm, and thigh inputs in Progress logging.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => update('enableAdvancedBodyMeasurements', !form.enableAdvancedBodyMeasurements)}
+              className={`h-7 px-3 rounded-full text-xs font-semibold ${
+                form.enableAdvancedBodyMeasurements ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+              }`}
+            >
+              {form.enableAdvancedBodyMeasurements ? 'On' : 'Off'}
+            </button>
+          </div>
+        </div>
       </div>
 
       <GradientButton onClick={handleSave} disabled={saving || Object.keys(errors).length > 0} className="w-full h-12 flex items-center justify-center gap-2">
