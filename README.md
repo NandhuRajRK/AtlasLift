@@ -1,34 +1,59 @@
 # AtlasLift
 
-AtlasLift is a mobile-first fitness tracker built with React + Vite and packaged for Android/iOS using Capacitor.
+AtlasLift is a local-first fitness tracking app built with React + Vite and packaged for Android/iOS with Capacitor.
 
-## What This Repo Contains
+## Repository Overview
 
-- React application source in `src/`
-- Local JSON-style entity models in `entities/`
-- Capacitor native projects:
-  - `android/`
-  - `ios/`
+- `src/`: app UI, pages, and state/query logic
+- `android/`: Capacitor Android project
+- `ios/`: Capacitor iOS project
+- `public/`: static assets
 
-## Core Product Scope
+## Current Feature Set
 
-- Onboarding and profile setup
-- Workout logging and session summaries
-- Program planning (days + exercises)
-- Meal logging and saved meals
+- Onboarding + profile setup
+- Workout logging with:
+  - active session logger
+  - rest timer
+  - superset group tagging
+  - undo for destructive delete actions
+  - progression/deload guidance
+- Program builder:
+  - program days/exercises
+  - inline sets/reps edits
+  - exercise grouping tags
+- Nutrition:
+  - meal logging/editing
+  - saved meals
+  - repeat yesterday meals
+  - undo delete
 - Hydration tracking
-- Progress tracking (body metrics, adherence, charts)
-- Local-first persistence via `localStorage`
+- Progress:
+  - bodyweight + measurements
+  - advanced measurements toggle (chest/arm/thigh)
+  - photo timeline
+  - goal-aware trend/adherence cards
+- History:
+  - date-based logs for workouts/meals/hydration/measurements
+  - edit/delete support on logged data
+  - weekly vs monthly summaries
+
+## Data Model
+
+The app currently runs fully in local mode.
+
+- Data is persisted in browser/WebView local storage.
+- No backend sync is required for normal operation.
 
 ## Tech Stack
 
 - React 18
-- Vite 6
+- Vite
 - TanStack Query
 - Tailwind CSS
-- Capacitor 8 (Android + iOS)
+- Capacitor (Android + iOS)
 
-## Development
+## Local Development
 
 Install dependencies:
 
@@ -36,68 +61,77 @@ Install dependencies:
 npm install
 ```
 
-Run web dev server:
+Run web development server:
 
 ```bash
 npm run dev
 ```
 
-Type check:
-
-```bash
-npm run typecheck
-```
-
-Lint:
-
-```bash
-npm run lint
-```
-
-Production build:
+Create production build:
 
 ```bash
 npm run build
 ```
 
-## Mobile Build Workflow
+## Capacitor Mobile Workflow
 
-Build and sync web assets to native projects:
+Sync latest web assets into native projects:
 
 ```bash
-npm run build:mobile
+npx cap copy
+```
+
+Sync and update native plugins:
+
+```bash
+npx cap sync
 ```
 
 Open Android project:
 
 ```bash
-npm run cap:android
+npx cap open android
 ```
 
 Open iOS project (macOS only):
 
 ```bash
-npm run cap:ios
+npx cap open ios
 ```
 
-## Android Release
+## Android Build (CLI)
 
-- Update version values in `android/app/build.gradle`:
-  - `versionCode`
-  - `versionName`
-- Build signed app bundle (`.aab`):
+Build debug APK:
+
+```bash
+cd android
+gradlew.bat assembleDebug
+```
+
+APK output:
+
+- `android/app/build/outputs/apk/debug/app-debug.apk`
+
+Build release AAB:
 
 ```bash
 cd android
 gradlew.bat bundleRelease
 ```
 
-Expected output:
+AAB output:
 
 - `android/app/build/outputs/bundle/release/app-release.aab`
 
-## iOS Release
+## Install Debug APK on Device
 
-- Open `ios/App/App.xcodeproj` in Xcode
-- Configure signing/team/bundle identifier
-- Archive from Xcode (`Product > Archive`)
+With USB debugging enabled:
+
+```bash
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+## iOS Build Notes
+
+- iOS builds require macOS + Xcode.
+- Open `ios/App/App.xcodeproj`, configure signing, then Archive in Xcode.
