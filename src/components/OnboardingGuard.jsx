@@ -6,7 +6,7 @@ import { Navigate } from 'react-router-dom';
 export default function OnboardingGuard({ children }) {
   const { data: profiles, isLoading } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => appClient.entities.UserProfile.list(),
+    queryFn: () => appClient.entities.UserProfile.list('-created_date', 50),
     initialData: [],
   });
 
@@ -18,8 +18,8 @@ export default function OnboardingGuard({ children }) {
     );
   }
 
-  const profile = profiles[0];
-  if (!profile || !profile.onboardingComplete) {
+  const hasCompletedOnboarding = profiles.some((p) => Boolean(p?.onboardingComplete));
+  if (!hasCompletedOnboarding) {
     return <Navigate to="/onboarding" replace />;
   }
 

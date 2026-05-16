@@ -7,6 +7,7 @@ import GradientButton from '@/components/ui/GradientButton';
 import MealForm from '@/components/meals/MealForm';
 import SavedMealPicker from '@/components/meals/SavedMealPicker';
 import { Plus, Bookmark, Trash2, UtensilsCrossed, Pencil } from 'lucide-react';
+import { selectPrimaryProfile } from '@/lib/profileUtils';
 
 const MEAL_TYPE_LABELS = {
   breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack',
@@ -20,8 +21,8 @@ export default function Meals() {
   const [showSaved, setShowSaved] = useState(false);
   const [editingMeal, setEditingMeal] = useState(null);
 
-  const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => appClient.entities.UserProfile.list(), initialData: [] });
-  const profile = profiles[0] || {};
+  const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => appClient.entities.UserProfile.list('-created_date', 50), initialData: [] });
+  const profile = selectPrimaryProfile(profiles) || {};
 
   const { data: meals } = useQuery({
     queryKey: ['meals', today],

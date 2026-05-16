@@ -9,6 +9,7 @@ import GradientButton from '@/components/ui/GradientButton';
 import BodyweightChart from '@/components/progress/BodyweightChart';
 import AdherenceCards from '@/components/progress/AdherenceCards';
 import StrengthChart from '@/components/progress/StrengthChart';
+import { selectPrimaryProfile } from '@/lib/profileUtils';
 
 export default function Progress() {
   const today = getToday();
@@ -23,8 +24,8 @@ export default function Progress() {
     initialData: [],
   });
 
-  const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => appClient.entities.UserProfile.list(), initialData: [] });
-  const profile = profiles[0] || {};
+  const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => appClient.entities.UserProfile.list('-created_date', 50), initialData: [] });
+  const profile = selectPrimaryProfile(profiles) || {};
 
   const logWeight = useMutation({
     mutationFn: () => appClient.entities.BodyMetric.create({

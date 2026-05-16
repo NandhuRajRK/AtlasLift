@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { appClient } from '@/api/localClient';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import GradientButton from '@/components/ui/GradientButton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,11 @@ const EXPERIENCE = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => appClient.entities.UserProfile.list('-created_date', 50),
+    initialData: [],
+  });
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({
@@ -36,27 +41,73 @@ export default function Onboarding() {
 
   const update = (field, value) => setProfile(p => ({ ...p, [field]: value }));
 
+  const asNumber = (value) => {
+    if (value === '' || value === null || value === undefined) return NaN;
+    return Number(value);
+  };
+
+  const errors = (() => {
+    const next = {};
+    const age = profile.age === '' ? NaN : Number(profile.age);
+    const height = asNumber(profile.heightCm);
+    const weight = asNumber(profile.currentWeightKg);
+    const calories = asNumber(profile.calorieTarget);
+    const protein = asNumber(profile.proteinTarget);
+    const carbs = asNumber(profile.carbTarget);
+    const fat = asNumber(profile.fatTarget);
+    const water = asNumber(profile.waterTargetMl);
+    const days = asNumber(profile.trainingDaysPerWeek);
+
+    if (!Number.isNaN(age) && (!Number.isFinite(age) || age < 10 || age > 100)) next.age = 'Age must be between 10 and 100';
+    if (!Number.isFinite(height) || height < 80 || height > 260) next.heightCm = 'Height must be between 80 and 260 cm';
+    if (!Number.isFinite(weight) || weight < 25 || weight > 400) next.currentWeightKg = 'Weight must be between 25 and 400 kg';
+    if (!Number.isFinite(calories) || calories < 800 || calories > 8000) next.calorieTarget = 'Calories must be between 800 and 8000';
+    if (!Number.isFinite(protein) || protein < 20 || protein > 500) next.proteinTarget = 'Protein must be between 20 and 500 g';
+    if (!Number.isFinite(carbs) || carbs < 20 || carbs > 1000) next.carbTarget = 'Carbs must be between 20 and 1000 g';
+    if (!Number.isFinite(fat) || fat < 10 || fat > 300) next.fatTarget = 'Fat must be between 10 and 300 g';
+    if (!Number.isFinite(water) || water < 500 || water > 10000) next.waterTargetMl = 'Water target must be between 500 and 10000 ml';
+    if (!Number.isFinite(days) || days < 1 || days > 7) next.trainingDaysPerWeek = 'Training days must be between 1 and 7';
+    return next;
+  })();
+
   const handleFinish = async () => {
     setSaving(true);
-    await appClient.entities.UserProfile.create({
-      ...profile,
-      age: profile.age ? Number(profile.age) : undefined,
-      heightCm: Number(profile.heightCm),
-      currentWeightKg: Number(profile.currentWeightKg),
-      calorieTarget: Number(profile.calorieTarget),
-      proteinTarget: Number(profile.proteinTarget),
-      carbTarget: Number(profile.carbTarget),
-      fatTarget: Number(profile.fatTarget),
-      waterTargetMl: Number(profile.waterTargetMl),
-      trainingDaysPerWeek: Number(profile.trainingDaysPerWeek),
-      onboardingComplete: true,
-    });
-    await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-    navigate('/');
+    try {
+      if (Object.keys(errors).length > 0) return;
+      const payload = {
+        ...profile,
+        age: profile.age ? Number(profile.age) : undefined,
+        heightCm: Number(profile.heightCm),
+        currentWeightKg: Number(profile.currentWeightKg),
+        calorieTarget: Number(profile.calorieTarget),
+        proteinTarget: Number(profile.proteinTarget),
+        carbTarget: Number(profile.carbTarget),
+        fatTarget: Number(profile.fatTarget),
+        waterTargetMl: Number(profile.waterTargetMl),
+        trainingDaysPerWeek: Number(profile.trainingDaysPerWeek),
+        onboardingComplete: true,
+      };
+
+      const latestProfile = profiles[0];
+      if (latestProfile?.id) {
+        await appClient.entities.UserProfile.update(latestProfile.id, payload);
+      } else {
+        await appClient.entities.UserProfile.create(payload);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      navigate('/');
+    } catch (error) {
+      console.error('Failed to finish onboarding:', error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const canNext = () => {
-    if (step === 0) return profile.name && profile.heightCm && profile.currentWeightKg;
+    if (step === 0) return !errors.heightCm && !errors.currentWeightKg && !errors.age;
+    if (step === 2) return !errors.calorieTarget && !errors.proteinTarget && !errors.carbTarget && !errors.fatTarget && !errors.waterTargetMl;
+    if (step === 3) return !errors.trainingDaysPerWeek;
     return true;
   };
 
@@ -69,20 +120,23 @@ export default function Onboarding() {
       </div>
       <div className="space-y-4">
         <div>
-          <Label className="text-xs text-muted-foreground">Name</Label>
+          <Label className="text-xs text-muted-foreground">Name (optional)</Label>
           <Input value={profile.name} onChange={e => update('name', e.target.value)} placeholder="Your name" className="bg-secondary border-border text-foreground mt-1.5 h-12" />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Age (optional)</Label>
           <Input type="number" value={profile.age} onChange={e => update('age', e.target.value)} placeholder="25" className="bg-secondary border-border text-foreground mt-1.5 h-12" />
+          {errors.age && <p className="text-[11px] text-destructive mt-1">{errors.age}</p>}
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Height (cm)</Label>
           <Input type="number" value={profile.heightCm} onChange={e => update('heightCm', e.target.value)} placeholder="176" className="bg-secondary border-border text-foreground mt-1.5 h-12" />
+          {errors.heightCm && <p className="text-[11px] text-destructive mt-1">{errors.heightCm}</p>}
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Current Weight (kg)</Label>
           <Input type="number" value={profile.currentWeightKg} onChange={e => update('currentWeightKg', e.target.value)} placeholder="73" className="bg-secondary border-border text-foreground mt-1.5 h-12" />
+          {errors.currentWeightKg && <p className="text-[11px] text-destructive mt-1">{errors.currentWeightKg}</p>}
         </div>
       </div>
     </div>,
@@ -115,7 +169,7 @@ export default function Onboarding() {
         <p className="text-sm text-muted-foreground mt-1">Set your daily macro goals.</p>
       </div>
       <div className="space-y-4">
-        {[
+        {[ 
           { field: 'calorieTarget', label: 'Calories (kcal)', ph: '2200' },
           { field: 'proteinTarget', label: 'Protein (g)', ph: '160' },
           { field: 'carbTarget', label: 'Carbs (g)', ph: '220' },
@@ -125,6 +179,7 @@ export default function Onboarding() {
           <div key={f.field}>
             <Label className="text-xs text-muted-foreground">{f.label}</Label>
             <Input type="number" value={profile[f.field]} onChange={e => update(f.field, e.target.value)} placeholder={f.ph} className="bg-secondary border-border text-foreground mt-1.5 h-12" />
+            {errors[f.field] && <p className="text-[11px] text-destructive mt-1">{errors[f.field]}</p>}
           </div>
         ))}
       </div>
@@ -167,6 +222,7 @@ export default function Onboarding() {
               </button>
             ))}
           </div>
+          {errors.trainingDaysPerWeek && <p className="text-[11px] text-destructive mt-1">{errors.trainingDaysPerWeek}</p>}
         </div>
       </div>
     </div>,
@@ -228,7 +284,7 @@ export default function Onboarding() {
               Next <ChevronRight className="w-4 h-4" />
             </GradientButton>
           ) : (
-            <GradientButton onClick={handleFinish} disabled={saving} className="flex-1 h-12 flex items-center justify-center gap-1.5">
+            <GradientButton onClick={handleFinish} disabled={saving || Object.keys(errors).length > 0} className="flex-1 h-12 flex items-center justify-center gap-1.5">
               {saving ? 'Setting up...' : 'Start Using Atlas Lift'} <Check className="w-4 h-4" />
             </GradientButton>
           )}

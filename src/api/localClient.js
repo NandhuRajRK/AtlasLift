@@ -166,6 +166,7 @@ export const appClient = {
     },
     logout() {
       localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(DB_KEY);
     },
     redirectToLogin() {
       // Local mode has no remote login flow.

@@ -10,16 +10,17 @@ import MacroBar from '@/components/ui/MacroBar';
 import TodayScoreCard from '@/components/today/TodayScoreCard';
 import TodayWorkoutCard from '@/components/today/TodayWorkoutCard';
 import TodayQuickActions from '@/components/today/TodayQuickActions';
+import { selectPrimaryProfile } from '@/lib/profileUtils';
 
 export default function Today() {
   const today = getToday();
 
   const { data: profiles } = useQuery({
     queryKey: ['userProfile'],
-    queryFn: () => appClient.entities.UserProfile.list(),
+    queryFn: () => appClient.entities.UserProfile.list('-created_date', 50),
     initialData: [],
   });
-  const profile = profiles[0] || {};
+  const profile = selectPrimaryProfile(profiles) || {};
 
   const { data: meals } = useQuery({
     queryKey: ['meals', today],

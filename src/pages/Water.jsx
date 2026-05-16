@@ -7,6 +7,7 @@ import { Droplets, Plus, Trash2 } from 'lucide-react';
 import ProgressRing from '@/components/ui/ProgressRing';
 import GradientButton from '@/components/ui/GradientButton';
 import { Input } from '@/components/ui/input';
+import { selectPrimaryProfile } from '@/lib/profileUtils';
 
 const QUICK_ADD = [250, 500, 750, 1000];
 
@@ -16,8 +17,8 @@ export default function Water() {
   const [customAmount, setCustomAmount] = useState('');
   const [showCustom, setShowCustom] = useState(false);
 
-  const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => appClient.entities.UserProfile.list(), initialData: [] });
-  const profile = profiles[0] || {};
+  const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => appClient.entities.UserProfile.list('-created_date', 50), initialData: [] });
+  const profile = selectPrimaryProfile(profiles) || {};
   const target = profile.waterTargetMl || 3000;
 
   const { data: entries } = useQuery({
@@ -28,6 +29,7 @@ export default function Water() {
 
   const total = entries.reduce((s, e) => s + (e.amountMl || 0), 0);
   const progress = Math.min((total / target) * 100, 100);
+  const sortedEntries = [...entries].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
 
   const addWater = useMutation({
     mutationFn: (amount) => appClient.entities.HydrationEntry.create({
@@ -103,7 +105,7 @@ export default function Water() {
       {entries.length > 0 && (
         <div className="space-y-2">
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Today's Log</div>
-          {entries.sort((a,b) => new Date(b.created_date) - new Date(a.created_date)).map(entry => (
+          {sortedEntries.map(entry => (
             <div key={entry.id} className="flex items-center justify-between bg-card rounded-xl p-3 border border-border">
               <div className="flex items-center gap-3">
                 <Droplets className="w-4 h-4 text-chart-3" />
