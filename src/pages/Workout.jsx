@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { subDays, parseISO } from 'date-fns';
+import { buildProgramDayMap, calculateWeeklyLoadChange, resolveSessionDisplayName } from '@/lib/workoutDomain';
 
 export default function Workout() {
   const today = getToday();
@@ -72,29 +73,18 @@ export default function Workout() {
   const visibleActiveDays = activeDays.slice(0, activeDaysVisibleCount);
   const visibleRecentSessions = recentSessions.slice(0, recentVisibleCount);
   const sessionById = new Map(sessions.map((s) => [s.id, s]));
-  const programDayById = new Map(programDays.map((d) => [d.id, d]));
-  const resolveSessionName = (session) => programDayById.get(session.programDayId)?.dayName || session.name;
-
-  const getWeeklyLoad = (fromDate) =>
-    allSets.reduce((sum, st) => {
-      const session = sessionById.get(st.workoutSessionId);
-      if (!session?.date || session.status !== 'completed') return sum;
-      if (parseISO(session.date) < fromDate) return sum;
-      return sum + (Number(st.weightKg || 0) * Number(st.reps || 0));
-    }, 0);
+  const programDayById = buildProgramDayMap(programDays);
 
   const currentWeekStart = subDays(new Date(), 6);
   const prevWeekStart = subDays(new Date(), 13);
   const prevWeekEnd = subDays(new Date(), 7);
-  const currentWeekLoad = getWeeklyLoad(currentWeekStart);
-  const previousWeekLoad = allSets.reduce((sum, st) => {
-    const session = sessionById.get(st.workoutSessionId);
-    if (!session?.date || session.status !== 'completed') return sum;
-    const d = parseISO(session.date);
-    if (d < prevWeekStart || d > prevWeekEnd) return sum;
-    return sum + (Number(st.weightKg || 0) * Number(st.reps || 0));
-  }, 0);
-  const loadChangePct = previousWeekLoad > 0 ? ((currentWeekLoad - previousWeekLoad) / previousWeekLoad) * 100 : 0;
+  const { currentWeekLoad, previousWeekLoad, loadChangePct } = calculateWeeklyLoadChange({
+    allSets,
+    sessionById,
+    currentWeekStart,
+    prevWeekStart,
+    prevWeekEnd,
+  });
   const weekCompleted = sessions.filter((s) => s.status === 'completed' && s.date && parseISO(s.date) >= currentWeekStart).length;
   const goSlowerWarning = loadChangePct > 15 && weekCompleted >= 4;
   const deloadSuggestion = loadChangePct < 5 && weekCompleted >= 4;
@@ -218,7 +208,7 @@ export default function Workout() {
             <div key={s.id} className="w-full flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-chart-4" />
-                <button onClick={() => setShowSummary(s)} className="text-sm text-foreground">{resolveSessionName(s)}</button>
+                <button onClick={() => setShowSummary(s)} className="text-sm text-foreground">{resolveSessionDisplayName(s, programDayById)}</button>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{s.durationMinutes ? `${s.durationMinutes} min` : ''}</span>
@@ -239,7 +229,7 @@ export default function Workout() {
           {visibleRecentSessions.map(s => (
             <div key={s.id} className="w-full flex items-center justify-between py-2">
               <div>
-                <button onClick={() => setShowSummary(s)} className="text-sm text-foreground text-left">{resolveSessionName(s)}</button>
+                <button onClick={() => setShowSummary(s)} className="text-sm text-foreground text-left">{resolveSessionDisplayName(s, programDayById)}</button>
                 <div className="text-xs text-muted-foreground">{s.date}</div>
               </div>
               <div className="flex items-center gap-2">
