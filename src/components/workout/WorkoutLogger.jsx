@@ -92,6 +92,11 @@ export default function WorkoutLogger({ sessionId, onFinish }) {
     mutationFn: (id) => appClient.entities.WorkoutSet.delete(id),
     onSuccess: () => refetchSets(),
   });
+  const { data: programDays } = useQuery({
+    queryKey: ['programDaysForLogger'],
+    queryFn: () => appClient.entities.ProgramDay.list(),
+    initialData: [],
+  });
 
   const queueDeleteSet = (set) => {
     if (pendingDeleteSetIds.includes(set.id)) return;
@@ -162,6 +167,7 @@ export default function WorkoutLogger({ sessionId, onFinish }) {
   });
 
   const formatTime = (s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+  const displaySessionName = programDays.find((d) => d.id === session?.programDayId)?.dayName || session?.name || 'Workout';
 
   if (showExercisePicker) {
     return <ExercisePicker onSelect={handleAddExercise} onClose={() => setShowExercisePicker(false)} />;
@@ -172,7 +178,7 @@ export default function WorkoutLogger({ sessionId, onFinish }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-foreground">{session?.name || 'Workout'}</h1>
+          <h1 className="text-lg font-bold text-foreground">{displaySessionName}</h1>
           <div className="flex items-center gap-1.5 mt-0.5">
             <Clock className="w-3 h-3 text-primary" />
             <span className="text-xs text-primary font-mono font-medium">{formatTime(elapsed)}</span>

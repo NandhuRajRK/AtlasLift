@@ -18,6 +18,8 @@ export default function Workout() {
   const [showSummary, setShowSummary] = useState(null);
   const [pendingDeleteSessionIds, setPendingDeleteSessionIds] = useState([]);
   const [deleteTimers, setDeleteTimers] = useState({});
+  const [activeDaysVisibleCount, setActiveDaysVisibleCount] = useState(6);
+  const [recentVisibleCount, setRecentVisibleCount] = useState(6);
 
   const { data: sessions } = useQuery({
     queryKey: ['workoutSessions'],
@@ -65,9 +67,13 @@ export default function Workout() {
 
   const inProgressSession = sessions.find(s => s.status === 'in_progress');
   const todaySessions = sessions.filter(s => s.date === today && !pendingDeleteSessionIds.includes(s.id));
-  const recentSessions = sessions.filter(s => s.date !== today && s.status === 'completed' && !pendingDeleteSessionIds.includes(s.id)).slice(0, 5);
+  const recentSessions = sessions.filter(s => s.date !== today && s.status === 'completed' && !pendingDeleteSessionIds.includes(s.id));
   const activeDays = activeProgram ? programDays.filter(d => d.programId === activeProgram.id).sort((a,b) => a.dayOrder - b.dayOrder) : [];
+  const visibleActiveDays = activeDays.slice(0, activeDaysVisibleCount);
+  const visibleRecentSessions = recentSessions.slice(0, recentVisibleCount);
   const sessionById = new Map(sessions.map((s) => [s.id, s]));
+  const programDayById = new Map(programDays.map((d) => [d.id, d]));
+  const resolveSessionName = (session) => programDayById.get(session.programDayId)?.dayName || session.name;
 
   const getWeeklyLoad = (fromDate) =>
     allSets.reduce((sum, st) => {
@@ -158,8 +164,8 @@ export default function Workout() {
         <div className="bg-card rounded-2xl p-4 border border-border">
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Active Program</div>
           <div className="text-sm font-bold text-foreground">{activeProgram.name}</div>
-          <div className="mt-3 space-y-2">
-            {activeDays.map(day => (
+          <div className="mt-3 space-y-2 max-h-72 overflow-y-auto pr-1">
+            {visibleActiveDays.map(day => (
               <button key={day.id} onClick={() => startWorkout.mutate(day)}
                 className="w-full flex items-center justify-between p-3 bg-secondary rounded-xl active:scale-[0.98] transition-transform">
                 <div className="flex items-center gap-3">
@@ -175,6 +181,11 @@ export default function Workout() {
               </button>
             ))}
           </div>
+          {activeDays.length > visibleActiveDays.length && (
+            <button onClick={() => setActiveDaysVisibleCount((n) => n + 6)} className="w-full h-9 rounded-lg bg-secondary text-sm font-medium text-foreground mt-2">
+              Load more days
+            </button>
+          )}
         </div>
       )}
 
@@ -207,7 +218,7 @@ export default function Workout() {
             <div key={s.id} className="w-full flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-chart-4" />
-                <button onClick={() => setShowSummary(s)} className="text-sm text-foreground">{s.name}</button>
+                <button onClick={() => setShowSummary(s)} className="text-sm text-foreground">{resolveSessionName(s)}</button>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{s.durationMinutes ? `${s.durationMinutes} min` : ''}</span>
@@ -224,10 +235,11 @@ export default function Workout() {
       {recentSessions.length > 0 && (
         <div className="bg-card rounded-2xl p-4 border border-border">
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-3">Recent</div>
-          {recentSessions.map(s => (
+          <div className="max-h-80 overflow-y-auto pr-1">
+          {visibleRecentSessions.map(s => (
             <div key={s.id} className="w-full flex items-center justify-between py-2">
               <div>
-                <button onClick={() => setShowSummary(s)} className="text-sm text-foreground text-left">{s.name}</button>
+                <button onClick={() => setShowSummary(s)} className="text-sm text-foreground text-left">{resolveSessionName(s)}</button>
                 <div className="text-xs text-muted-foreground">{s.date}</div>
               </div>
               <div className="flex items-center gap-2">
@@ -238,6 +250,12 @@ export default function Workout() {
               </div>
             </div>
           ))}
+          </div>
+          {recentSessions.length > visibleRecentSessions.length && (
+            <button onClick={() => setRecentVisibleCount((n) => n + 6)} className="w-full h-9 rounded-lg bg-secondary text-sm font-medium text-foreground mt-2">
+              Load more history
+            </button>
+          )}
         </div>
       )}
 

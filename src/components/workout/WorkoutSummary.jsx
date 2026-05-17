@@ -10,10 +10,16 @@ export default function WorkoutSummary({ session, onClose }) {
     queryFn: () => appClient.entities.WorkoutSet.filter({ workoutSessionId: session.id }),
     initialData: [],
   });
+  const { data: programDays } = useQuery({
+    queryKey: ['programDaysForSummary'],
+    queryFn: () => appClient.entities.ProgramDay.list(),
+    initialData: [],
+  });
 
   const completedSets = sets.filter(s => s.isCompleted);
   const totalVolume = completedSets.reduce((s, set) => s + (set.weightKg || 0) * (set.reps || 0), 0);
   const exercises = [...new Set(completedSets.map(s => s.exerciseName))];
+  const displayName = programDays.find((d) => d.id === session.programDayId)?.dayName || session.name;
 
   return (
     <div className="px-4 pt-6 pb-4 space-y-5">
@@ -26,7 +32,7 @@ export default function WorkoutSummary({ session, onClose }) {
 
       <div className="bg-card rounded-2xl p-5 border border-border text-center">
         <CheckCircle2 className="w-12 h-12 text-chart-4 mx-auto mb-3" />
-        <h2 className="text-xl font-bold text-foreground">{session.name}</h2>
+        <h2 className="text-xl font-bold text-foreground">{displayName}</h2>
         <p className="text-sm text-muted-foreground mt-1">{session.date}</p>
       </div>
 
