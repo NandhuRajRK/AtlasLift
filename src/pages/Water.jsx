@@ -16,6 +16,7 @@ export default function Water() {
   const queryClient = useQueryClient();
   const [customAmount, setCustomAmount] = useState('');
   const [showCustom, setShowCustom] = useState(false);
+  const [entriesVisibleCount, setEntriesVisibleCount] = useState(10);
 
   const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => appClient.entities.UserProfile.list('-created_date', 50), initialData: [] });
   const profile = selectPrimaryProfile(profiles) || {};
@@ -30,6 +31,7 @@ export default function Water() {
   const total = entries.reduce((s, e) => s + (e.amountMl || 0), 0);
   const progress = Math.min((total / target) * 100, 100);
   const sortedEntries = [...entries].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+  const visibleEntries = sortedEntries.slice(0, entriesVisibleCount);
 
   const addWater = useMutation({
     mutationFn: (amount) => appClient.entities.HydrationEntry.create({
@@ -105,7 +107,8 @@ export default function Water() {
       {entries.length > 0 && (
         <div className="space-y-2">
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Today's Log</div>
-          {sortedEntries.map(entry => (
+          <div className="max-h-96 overflow-y-auto pr-1 space-y-2">
+          {visibleEntries.map(entry => (
             <div key={entry.id} className="flex items-center justify-between bg-card rounded-xl p-3 border border-border">
               <div className="flex items-center gap-3">
                 <Droplets className="w-4 h-4 text-chart-3" />
@@ -124,6 +127,12 @@ export default function Water() {
               </div>
             </div>
           ))}
+          </div>
+          {sortedEntries.length > visibleEntries.length && (
+            <button onClick={() => setEntriesVisibleCount((n) => n + 10)} className="w-full h-9 rounded-lg bg-secondary text-sm font-medium text-foreground">
+              Load more entries
+            </button>
+          )}
         </div>
       )}
     </div>

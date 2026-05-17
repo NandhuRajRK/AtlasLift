@@ -25,6 +25,7 @@ export default function Meals() {
   const [editingMeal, setEditingMeal] = useState(null);
   const [pendingDeleteIds, setPendingDeleteIds] = useState([]);
   const [deleteTimers, setDeleteTimers] = useState({});
+  const [mealVisibleCount, setMealVisibleCount] = useState(8);
 
   const { data: profiles } = useQuery({ queryKey: ['userProfile'], queryFn: () => appClient.entities.UserProfile.list('-created_date', 50), initialData: [] });
   const profile = selectPrimaryProfile(profiles) || {};
@@ -46,6 +47,7 @@ export default function Meals() {
   });
 
   const visibleMeals = meals.filter((m) => !pendingDeleteIds.includes(m.id));
+  const pagedMeals = visibleMeals.slice(0, mealVisibleCount);
 
   const totalCals = visibleMeals.reduce((s, m) => s + (m.calories || 0), 0);
   const totalProtein = visibleMeals.reduce((s, m) => s + (m.protein || 0), 0);
@@ -154,7 +156,8 @@ export default function Meals() {
       ) : visibleMeals.length > 0 ? (
         <div className="space-y-2">
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Today's Meals</div>
-          {visibleMeals.map(meal => (
+          <div className="max-h-96 overflow-y-auto pr-1 space-y-2">
+          {pagedMeals.map(meal => (
             <div key={meal.id} className="bg-card rounded-xl p-4 border border-border">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -178,6 +181,12 @@ export default function Meals() {
               </div>
             </div>
           ))}
+          </div>
+          {visibleMeals.length > pagedMeals.length && (
+            <button onClick={() => setMealVisibleCount((n) => n + 8)} className="w-full h-9 rounded-lg bg-secondary text-sm font-medium text-foreground">
+              Load more meals
+            </button>
+          )}
         </div>
       ) : (
         <div className="text-center py-8">
