@@ -88,6 +88,10 @@ export default function History() {
   const [hydrationEdit, setHydrationEdit] = useState('');
   const [editingMetricId, setEditingMetricId] = useState(null);
   const [metricEdit, setMetricEdit] = useState({ bodyweightKg: '', waistCm: '', chestCm: '', armCm: '', thighCm: '' });
+  const [workoutsVisibleCount, setWorkoutsVisibleCount] = useState(6);
+  const [mealsVisibleCount, setMealsVisibleCount] = useState(8);
+  const [hydrationVisibleCount, setHydrationVisibleCount] = useState(8);
+  const [metricsVisibleCount, setMetricsVisibleCount] = useState(8);
 
   const invalidateAll = async () => {
     await Promise.all([
@@ -147,6 +151,10 @@ export default function History() {
 
   const recentDates = useMemo(() => getDateRange(21).reverse(), []);
   const waterTotal = dayHydration.reduce((sum, h) => sum + Number(h.amountMl || 0), 0);
+  const visibleDaySessions = daySessions.slice(0, workoutsVisibleCount);
+  const visibleDayMeals = dayMeals.slice(0, mealsVisibleCount);
+  const visibleDayHydration = dayHydration.slice(0, hydrationVisibleCount);
+  const visibleDayMetrics = dayMeasurementMetrics.slice(0, metricsVisibleCount);
 
   const makeRangeSummary = (daysBack) => {
     const startDate = subDays(new Date(), daysBack - 1);
@@ -220,7 +228,9 @@ export default function History() {
 
       <section className="bg-card rounded-2xl p-4 border border-border space-y-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wider"><Dumbbell className="w-3.5 h-3.5" />Workouts</div>
-        {daySessions.length === 0 ? <p className="text-sm text-muted-foreground">No workouts logged on this date.</p> : daySessions.map((session) => {
+        {daySessions.length === 0 ? <p className="text-sm text-muted-foreground">No workouts logged on this date.</p> : (
+          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+          {visibleDaySessions.map((session) => {
           const setCount = (setsBySessionId.get(session.id) || []).filter((s) => s.isCompleted).length;
           return (
             <div key={session.id} className="bg-secondary rounded-xl p-3">
@@ -236,11 +246,20 @@ export default function History() {
             </div>
           );
         })}
+          </div>
+        )}
+        {daySessions.length > visibleDaySessions.length && (
+          <button onClick={() => setWorkoutsVisibleCount((n) => n + 6)} className="w-full h-9 rounded-lg bg-secondary text-sm font-medium text-foreground">
+            Load more workouts
+          </button>
+        )}
       </section>
 
       <section className="bg-card rounded-2xl p-4 border border-border space-y-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wider"><UtensilsCrossed className="w-3.5 h-3.5" />Meals</div>
-        {dayMeals.length === 0 ? <p className="text-sm text-muted-foreground">No meals logged on this date.</p> : dayMeals.map((meal) => (
+        {dayMeals.length === 0 ? <p className="text-sm text-muted-foreground">No meals logged on this date.</p> : (
+          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+          {visibleDayMeals.map((meal) => (
           <div key={meal.id} className="bg-secondary rounded-xl p-3 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -266,11 +285,20 @@ export default function History() {
             )}
           </div>
         ))}
+          </div>
+        )}
+        {dayMeals.length > visibleDayMeals.length && (
+          <button onClick={() => setMealsVisibleCount((n) => n + 8)} className="w-full h-9 rounded-lg bg-secondary text-sm font-medium text-foreground">
+            Load more meals
+          </button>
+        )}
       </section>
 
       <section className="bg-card rounded-2xl p-4 border border-border space-y-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wider"><Droplets className="w-3.5 h-3.5" />Hydration</div>
-        {dayHydration.length === 0 ? <p className="text-sm text-muted-foreground">No hydration entries on this date.</p> : dayHydration.map((entry) => (
+        {dayHydration.length === 0 ? <p className="text-sm text-muted-foreground">No hydration entries on this date.</p> : (
+          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+          {visibleDayHydration.map((entry) => (
           <div key={entry.id} className="bg-secondary rounded-xl p-3 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="text-sm font-semibold text-foreground">{entry.amountMl} ml</div>
@@ -289,11 +317,20 @@ export default function History() {
             )}
           </div>
         ))}
+          </div>
+        )}
+        {dayHydration.length > visibleDayHydration.length && (
+          <button onClick={() => setHydrationVisibleCount((n) => n + 8)} className="w-full h-9 rounded-lg bg-secondary text-sm font-medium text-foreground">
+            Load more hydration
+          </button>
+        )}
       </section>
 
       <section className="bg-card rounded-2xl p-4 border border-border space-y-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wider"><Scale className="w-3.5 h-3.5" />Body Metrics</div>
-        {dayMeasurementMetrics.length === 0 ? <p className="text-sm text-muted-foreground">No body metrics on this date.</p> : dayMeasurementMetrics.map((m) => (
+        {dayMeasurementMetrics.length === 0 ? <p className="text-sm text-muted-foreground">No body metrics on this date.</p> : (
+          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+          {visibleDayMetrics.map((m) => (
           <div key={m.id} className="bg-secondary rounded-xl p-3 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="text-sm text-foreground">
@@ -353,6 +390,13 @@ export default function History() {
             )}
           </div>
         ))}
+          </div>
+        )}
+        {dayMeasurementMetrics.length > visibleDayMetrics.length && (
+          <button onClick={() => setMetricsVisibleCount((n) => n + 8)} className="w-full h-9 rounded-lg bg-secondary text-sm font-medium text-foreground">
+            Load more metrics
+          </button>
+        )}
       </section>
 
       <section className="bg-card rounded-2xl p-4 border border-border space-y-3">

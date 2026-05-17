@@ -11,6 +11,7 @@ import BodyweightChart from '@/components/progress/BodyweightChart';
 import AdherenceCards from '@/components/progress/AdherenceCards';
 import StrengthChart from '@/components/progress/StrengthChart';
 import { selectPrimaryProfile } from '@/lib/profileUtils';
+import { toast } from '@/components/ui/use-toast';
 
 export default function Progress() {
   const today = getToday();
@@ -22,6 +23,7 @@ export default function Progress() {
   const [armVal, setArmVal] = useState('');
   const [thighVal, setThighVal] = useState('');
   const [photoSaving, setPhotoSaving] = useState(false);
+  const [photoPageSize, setPhotoPageSize] = useState(9);
 
   const { data: metrics } = useQuery({
     queryKey: ['bodyMetrics'],
@@ -242,6 +244,7 @@ export default function Progress() {
     .filter((m) => Boolean(m.progressPhotoUrl))
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 20);
+  const visiblePhotos = photoMetrics.slice(0, photoPageSize);
 
   const goalCheckins = {
     cut: {
@@ -303,6 +306,34 @@ export default function Progress() {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const replacePhoto = async (metricId, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        setPhotoSaving(true);
+        await appClient.entities.BodyMetric.update(metricId, { progressPhotoUrl: reader.result });
+        await queryClient.invalidateQueries({ queryKey: ['bodyMetrics'] });
+        toast({ title: 'Photo replaced' });
+      } finally {
+        setPhotoSaving(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const deletePhoto = async (metric) => {
+    const hasMeasurements = ['bodyweightKg', 'waistCm', 'chestCm', 'armCm', 'thighCm']
+      .some((k) => Number.isFinite(Number(metric[k])));
+    if (hasMeasurements) {
+      await appClient.entities.BodyMetric.update(metric.id, { progressPhotoUrl: undefined });
+    } else {
+      await appClient.entities.BodyMetric.delete(metric.id);
+    }
+    await queryClient.invalidateQueries({ queryKey: ['bodyMetrics'] });
+    toast({ title: 'Photo removed' });
   };
 
   const logWeight = useMutation({
@@ -428,13 +459,30 @@ export default function Progress() {
           </label>
         </div>
         {photoMetrics.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2">
-            {photoMetrics.map((m) => (
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1">
+            {visiblePhotos.map((m) => (
               <div key={m.id} className="space-y-1">
                 <img src={m.progressPhotoUrl} alt="Progress" className="w-full h-24 object-cover rounded-lg border border-border" />
                 <div className="text-[10px] text-muted-foreground text-center">{m.date}</div>
+                <div className="flex gap-1">
+                  <label className="flex-1 h-7 rounded-md bg-secondary text-[10px] text-foreground flex items-center justify-center cursor-pointer">
+                    Replace
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => replacePhoto(m.id, e.target.files?.[0])} />
+                  </label>
+                  <button onClick={() => deletePhoto(m)} className="flex-1 h-7 rounded-md bg-secondary text-[10px] text-foreground">Delete</button>
+                </div>
               </div>
             ))}
+            </div>
+            {photoMetrics.length > visiblePhotos.length && (
+              <button
+                onClick={() => setPhotoPageSize((n) => n + 9)}
+                className="w-full h-9 rounded-lg bg-secondary text-sm text-foreground font-medium"
+              >
+                Load more photos
+              </button>
+            )}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">No progress photos yet.</p>
