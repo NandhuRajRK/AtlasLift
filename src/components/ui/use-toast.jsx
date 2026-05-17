@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 
 const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_REMOVE_DELAY = 3000;
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -19,6 +19,7 @@ function genId() {
 }
 
 const toastTimeouts = new Map();
+const toastAutoDismiss = new Map();
 
 const addToRemoveQueue = (toastId) => {
   if (toastTimeouts.has(toastId)) {
@@ -42,6 +43,16 @@ const _clearFromRemoveQueue = (toastId) => {
     clearTimeout(timeout);
     toastTimeouts.delete(toastId);
   }
+};
+
+const scheduleAutoDismiss = (toastId, delay = TOAST_REMOVE_DELAY) => {
+  const existing = toastAutoDismiss.get(toastId);
+  if (existing) clearTimeout(existing);
+  const timeout = setTimeout(() => {
+    toastAutoDismiss.delete(toastId);
+    dispatch({ type: actionTypes.DISMISS_TOAST, toastId });
+  }, delay);
+  toastAutoDismiss.set(toastId, timeout);
 };
 
 export const reducer = (state, action) => {
@@ -133,6 +144,8 @@ function toast({ ...props }) {
       },
     },
   });
+
+  scheduleAutoDismiss(id, Number(props.duration) || TOAST_REMOVE_DELAY);
 
   return {
     id,
